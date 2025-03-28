@@ -25,5 +25,10 @@
       cd /opt/yara-4.5.1/rules
       ./index_gen.sh
 
-## ➡️ Step 3: Now add the yara.sh in ```/var/ossec/active-response/bin```
+## ➡️ Step 3: Now add the [yara.sh](https://github.com/effaaykhan/LLM-Enrichment-in-Wazuh-Alerts/blob/main/yara.sh) in /var/ossec/active-response/bin
+
+## ➡️ Wazuh-Server Config
+   - Paste the Decoders in /var/ossec/etc/decoders/local_decoder.xml
+   - Paste the Rules in /var/ossec/etc/rules/local_rules.xml
+   - In ```ossec.conf``` Add the following block
       
