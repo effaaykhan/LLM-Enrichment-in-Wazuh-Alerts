@@ -10,13 +10,11 @@
 
 #------------------------- Configuration -------------------------#
 
-# ChatGPT API key
-API_KEY="YOUR-API-KEY"
-OPENAI_MODEL="OPENAI-MODEL" #for example gpt-4-turbo
-
-
 # Set LOG_FILE path
 LOG_FILE="logs/active-responses.log"
+
+# Python script path for LLM integration
+PYTHON_SCRIPT="/var/ossec/active-response/bin/llm_query.py"
 
 #------------------------- Gather parameters -------------------------#
 
@@ -56,55 +54,30 @@ then
         echo "wazuh-YARA: INFO - Unable to delete $FILENAME" >> ${LOG_FILE}
     fi
 
-    # Flag to check if API key is invalid
-    api_key_invalid=false
+    # Flag to check if API request is invalid
+    api_request_invalid=false
 
     # Iterate every detected rule
     while read -r line; do
         # Extract the description from the line using regex
         description=$(echo "$line" | grep -oP '(?<=description=").*?(?=")')
         if [[ $description != "" ]]; then
-            # Prepare the message payload for ChatGPT
-            payload=$(jq -n \
-                --arg desc "$description" \
-                --arg model "$OPENAI_MODEL" \
-                '{
-                    model: $model,
-                    messages: [
-                        {
-                            role: "system",
-                            content: "In one paragraph, tell me about the impact and how to mitigate \($desc)"
-                        }
-                    ],
-                    temperature: 1,
-                    max_tokens: 256,
-                    top_p: 1,
-                    frequency_penalty: 0,
-                    presence_penalty: 0
-                }')
+            # Query the Python LLM script for more information
+            llm_response=$(python3 "$PYTHON_SCRIPT" "In one paragraph, tell me about the impact and how to mitigate $description")
 
-            # Query ChatGPT for more information
-            chatgpt_response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
-                -H "Content-Type: application/json" \
-                -H "Authorization: Bearer $API_KEY" \
-                -d "$payload")
-
-            # Check for invalid API key error
-            if echo "$chatgpt_response" | grep -q "invalid_request_error"; then
-                api_key_invalid=true
-                echo "wazuh-YARA: ERROR - Invalid ChatGPT API key" >> ${LOG_FILE}
-                # Log Yara scan result without ChatGPT response
+            # Check for invalid API response
+            if [[ $? -ne 0 ]]; then
+                api_request_invalid=true
+                echo "wazuh-YARA: ERROR - Invalid LLM API request" >> ${LOG_FILE}
+                # Log Yara scan result without LLM response
                 echo "wazuh-YARA: INFO - Scan result: $line | chatgpt_response: none" >> ${LOG_FILE}
             else
-                # Extract the response text from ChatGPT API response
-                response_text=$(echo "$chatgpt_response" | jq -r '.choices[0].message.content')
-
-                # Check if the response text is null and handle the error
-                if [[ $response_text == "null" ]]; then
-                    echo "wazuh-YARA: ERROR - ChatGPT API returned null response: $chatgpt_response" >> ${LOG_FILE}
+                # Check if the response text is empty and handle the error
+                if [[ -z "$llm_response" ]]; then
+                    echo "wazuh-YARA: ERROR - LLM API returned empty response" >> ${LOG_FILE}
                 else
-                    # Combine the YARA scan output and ChatGPT response
-                    combined_output="wazuh-YARA: INFO - Scan result: $line | chatgpt_response: $response_text"
+                    # Combine the YARA scan output and LLM response
+                    combined_output="wazuh-YARA: INFO - Scan result: $line | chatgpt_response: $llm_response"
 
                     # Append the combined output to the log file
                     echo "$combined_output" >> ${LOG_FILE}
@@ -115,9 +88,9 @@ then
         fi
     done <<< "$YARA_output"
 
-    # If API key was invalid, log a specific message
-    if $api_key_invalid; then
-        echo "wazuh-YARA: INFO - API key is invalid. ChatGPT response omitted." >> ${LOG_FILE}
+    # If API request was invalid, log a specific message
+    if $api_request_invalid; then
+        echo "wazuh-YARA: INFO - API request is invalid. LLM response omitted." >> ${LOG_FILE}
     fi
 else
     echo "wazuh-YARA: INFO - No YARA rule matched." >> ${LOG_FILE}
