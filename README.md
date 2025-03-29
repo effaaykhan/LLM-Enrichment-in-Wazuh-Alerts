@@ -25,7 +25,9 @@
       cd /opt/yara-4.5.1/rules
       ./index_gen.sh
 
-## ➡️ Step 3: Now add the [yara.sh](https://github.com/effaaykhan/LLM-Enrichment-in-Wazuh-Alerts/blob/main/yara.sh) in /var/ossec/active-response/bin
+## ➡️ Step 3: Now add the following scripts in /var/ossec/active-response/bin
+   - [yara.sh](https://github.com/effaaykhan/LLM-Enrichment-in-Wazuh-Alerts/blob/main/yara.sh)
+   - [llm_query.py](https://github.com/effaaykhan/LLM-Enrichment-in-Wazuh-Alerts/blob/main/llm_query.py)
 
 ## ➡️ Wazuh-Server Config
    - Paste the [Decoders](https://github.com/effaaykhan/LLM-Enrichment-in-Wazuh-Alerts/blob/main/local_decoder.xml) in /var/ossec/etc/decoders/local_decoder.xml
