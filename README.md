@@ -10,7 +10,7 @@
       apt install libmagic-dev
    
   ## - Install Yara
-      
+      cd /opt
       wget https://github.com/VirusTotal/yara/archive/refs/tags/v4.5.1.tar.gz
       tar xzvf v4.5.1.tar.gz
       cd yara-4.5.1
@@ -19,6 +19,7 @@
       make
       make install
       make check
+      git clone https://github.com/Yara-Rules/rules.git
       
 
 ## ➡️ Step 2: Install Yara Rules
